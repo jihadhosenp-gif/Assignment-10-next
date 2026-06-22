@@ -11,6 +11,7 @@
   "dependencies": {
     "@better-auth/mongo-adapter": "^1.6.20",
     "@heroicons/react": "^2.2.0",
+    "axios": "^1.18.1",
     "better-auth": "^1.6.20",
     "lucide-react": "^1.21.0",
     "mongodb": "^7.3.0",

@@ -1,5 +1,5 @@
-import ClientDashboard from "@/components/dashboard/ClientDashboard";
+import DashboardStats from "@/components/dashboard/DashboardStats";
 
-export default function Page() {
-  return <ClientDashboard />;
+export default function ClientDashboardPage() {
+  return <DashboardStats />;
 }
