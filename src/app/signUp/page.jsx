@@ -2,13 +2,20 @@
 
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
+    role: "",
     email: "",
     password: "",
   });
@@ -36,6 +43,7 @@ export default function RegisterForm() {
     try {
       const { error } = await authClient.signUp.email({
         name: formData.name,
+        role: formData.role,
         email: formData.email,
         password: formData.password,
       });
@@ -49,6 +57,7 @@ export default function RegisterForm() {
 
       setFormData({
         name: "",
+        role: "",
         email: "",
         password: "",
       });
@@ -110,6 +119,43 @@ export default function RegisterForm() {
             </div>
           </div>
 
+          {/* Role */}
+          <div>
+            <label className="block text-white/70 mb-2">
+              Select Role
+            </label>
+
+            <select
+              name="role"
+              required
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-purple-500"
+            >
+              <option
+                value=""
+                className="bg-gray-900"
+              >
+                Choose your role
+              </option>
+
+        
+              <option
+                value="client"
+                className="bg-gray-900"
+              >
+                Client
+              </option>
+
+              <option
+                value="freelancer"
+                className="bg-gray-900"
+              >
+                Freelancer
+              </option>
+            </select>
+          </div>
+
           {/* Email */}
           <div>
             <label className="block text-white/70 mb-2">
@@ -147,7 +193,11 @@ export default function RegisterForm() {
               />
 
               <input
-                type={showPassword ? "text" : "password"}
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
                 name="password"
                 required
                 minLength={6}

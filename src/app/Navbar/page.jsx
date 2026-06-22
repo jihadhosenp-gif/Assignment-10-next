@@ -170,7 +170,7 @@ export default function Navbar() {
                     </Link>
 
                     {/* SIGN UP */}
-                    <Link href="/sign-up">
+                    <Link href="/signUp">
                       <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.97 }}
