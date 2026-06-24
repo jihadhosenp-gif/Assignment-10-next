@@ -4,14 +4,19 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function DashboardStats() {
-  const [stats, setStats] =
-    useState({});
+  const [stats, setStats] = useState({
+    totalTasks: 0,
+    openTasks: 0,
+    inProgress: 0,
+    totalSpent: 0,
+  });
 
   useEffect(() => {
     axios
-      .get("/api/dashboard-stats")
-      .then((res) =>
-        setStats(res.data)
+      .get("http://localhost:5000/api/dashboard-stats")
+      .then((res) => setStats(res.data))
+      .catch((error) =>
+        console.error("API Error:", error)
       );
   }, []);
 
