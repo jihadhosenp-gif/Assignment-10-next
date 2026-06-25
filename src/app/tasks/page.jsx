@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Search, Calendar, DollarSign, User, ArrowRight, Briefcase } from "lucide-react";
 import Link from "next/link";
 
@@ -13,8 +13,8 @@ const CATEGORY_COLORS = {
 };
 
 const STATUS_COLORS = {
-  open:        { bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400" },
-  closed:      { bg: "bg-red-500/10",     text: "text-red-400",     dot: "bg-red-400"     },
+  open:         { bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400" },
+  closed:       { bg: "bg-red-500/10",     text: "text-red-400",     dot: "bg-red-400"     },
   "in-progress":{ bg: "bg-yellow-500/10", text: "text-yellow-400",  dot: "bg-yellow-400"  },
 };
 
@@ -42,30 +42,23 @@ function StatusBadge({ status }) {
 function TaskCard({ task }) {
   return (
     <div className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col gap-4 hover:border-zinc-600 hover:shadow-2xl hover:shadow-black/40 hover:-translate-y-1 transition-all duration-300">
-
-      {/* Subtle top glow on hover */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-2xl" />
 
-      {/* Top badges */}
       <div className="flex items-center justify-between">
         <CategoryBadge category={task.category} />
         <StatusBadge status={task.status} />
       </div>
 
-      {/* Title */}
       <h2 className="text-lg font-bold text-zinc-100 leading-snug group-hover:text-white transition-colors line-clamp-2">
         {task.title}
       </h2>
 
-      {/* Description */}
       <p className="text-sm text-zinc-500 leading-relaxed line-clamp-3 flex-1">
         {task.description}
       </p>
 
-      {/* Divider */}
       <div className="border-t border-zinc-800" />
 
-      {/* Meta info */}
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="flex flex-col items-start gap-1">
           <span className="text-zinc-600 uppercase tracking-wide font-medium text-[10px]">Budget</span>
@@ -74,7 +67,6 @@ function TaskCard({ task }) {
             {task.budget}
           </span>
         </div>
-
         <div className="flex flex-col items-start gap-1">
           <span className="text-zinc-600 uppercase tracking-wide font-medium text-[10px]">Deadline</span>
           <span className="flex items-center gap-1 font-semibold text-zinc-300">
@@ -82,7 +74,6 @@ function TaskCard({ task }) {
             {task.deadline}
           </span>
         </div>
-
         <div className="flex flex-col items-start gap-1">
           <span className="text-zinc-600 uppercase tracking-wide font-medium text-[10px]">Client</span>
           <span className="flex items-center gap-1 font-semibold text-zinc-300 truncate">
@@ -92,7 +83,6 @@ function TaskCard({ task }) {
         </div>
       </div>
 
-      {/* CTA */}
       <Link
         href={`/tasks/${task._id}`}
         className="flex items-center justify-center gap-2 mt-1 bg-white text-zinc-900 text-sm font-bold py-3 rounded-xl hover:bg-zinc-100 active:scale-[0.98] transition-all"
@@ -133,39 +123,60 @@ function SkeletonCard() {
 
 const CATEGORIES = ["All", "Design", "Writing", "Development", "Marketing", "Other"];
 
-export default function BrowseTasks() {
-  const [tasks, setTasks] = useState([]);
-  const [filteredTasks, setFilteredTasks] = useState([]);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
-  const [loading, setLoading] = useState(true);
-
+// ─── debounce helper ──────────────────────────────────────────────────────────
+function useDebounce(value, delay = 400) {
+  const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    fetch("http://localhost:5000/api/tasks")
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
+export default function BrowseTasks() {
+  const [tasks, setTasks]               = useState([]);
+  const [search, setSearch]             = useState("");
+  const [category, setCategory]         = useState("All");
+  const [loading, setLoading]           = useState(true);
+  const [totalCount, setTotalCount]     = useState(0);
+
+  // ── debounce the search input so we don't fire on every keystroke ──────────
+  const debouncedSearch = useDebounce(search, 400);
+
+  // ── fetch from server whenever debounced search or category changes ────────
+  useEffect(() => {
+    setLoading(true);
+
+    const params = new URLSearchParams();
+    if (debouncedSearch)          params.set("search",   debouncedSearch);
+    if (category !== "All")       params.set("category", category);
+
+    const url = `http://localhost:5000/api/tasks${params.toString() ? `?${params}` : ""}`;
+
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        setTasks(data);
-        setFilteredTasks(data);
+        // Support both plain array and { tasks, total } response shapes
+        if (Array.isArray(data)) {
+          setTasks(data);
+          setTotalCount(data.length);
+        } else {
+          setTasks(data.tasks ?? []);
+          setTotalCount(data.total ?? (data.tasks?.length ?? 0));
+        }
         setLoading(false);
       })
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         setLoading(false);
       });
-  }, []);
+  }, [debouncedSearch, category]);
 
-  useEffect(() => {
-    let filtered = [...tasks];
-    if (search) {
-      filtered = filtered.filter((task) =>
-        task.title.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    if (category !== "All") {
-      filtered = filtered.filter((task) => task.category === category);
-    }
-    setFilteredTasks(filtered);
-  }, [search, category, tasks]);
+  // ── clear both filters ────────────────────────────────────────────────────
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setCategory("All");
+  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-950">
@@ -177,9 +188,7 @@ export default function BrowseTasks() {
             <Briefcase size={15} />
             Freelance Marketplace
           </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">
-            Browse Tasks
-          </h1>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight">Browse Tasks</h1>
           <p className="text-zinc-500 mt-2 text-base">
             Find freelance opportunities and submit your proposals.
           </p>
@@ -198,6 +207,10 @@ export default function BrowseTasks() {
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 transition"
             />
+            {/* show a subtle spinner while the debounce is pending */}
+            {search !== debouncedSearch && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
+            )}
           </div>
 
           {/* Category pills */}
@@ -221,7 +234,7 @@ export default function BrowseTasks() {
         {/* Results count */}
         {!loading && (
           <p className="text-sm text-zinc-600 mb-5">
-            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""} found
+            {totalCount} task{totalCount !== 1 ? "s" : ""} found
           </p>
         )}
 
@@ -230,9 +243,9 @@ export default function BrowseTasks() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
-        ) : filteredTasks.length > 0 ? (
+        ) : tasks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTasks.map((task) => (
+            {tasks.map((task) => (
               <TaskCard key={task._id} task={task} />
             ))}
           </div>
@@ -247,7 +260,7 @@ export default function BrowseTasks() {
               Try a different keyword or category.
             </p>
             <button
-              onClick={() => { setSearch(""); setCategory("All"); }}
+              onClick={clearFilters}
               className="mt-5 px-5 py-2.5 bg-white text-zinc-900 text-sm font-bold rounded-xl hover:bg-zinc-100 transition"
             >
               Clear Filters
