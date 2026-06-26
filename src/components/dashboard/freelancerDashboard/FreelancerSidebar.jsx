@@ -55,9 +55,9 @@ export default function FreelancerSidebar() {
   const pathname = usePathname();
 
   return (
-    // মূল র‍্যাপার (Width: 270px এবং ব্যাকগ্রাউন্ড সেট করা হয়েছে)
+    
     <aside className="w-[270px] min-h-screen bg-gradient-to-b from-[#0b0b12] to-[#08080c] border-r border-[#16161d] flex flex-col justify-between font-sans antialiased p-4 py-6 box-border relative overflow-hidden">
-      {/* হালকা অ্যাম্বিয়েন্ট গ্লো */}
+      
       <div className="pointer-events-none absolute -top-24 -left-20 w-64 h-64 bg-purple-600/10 rounded-full blur-[80px]" />
 
       <div className="relative z-10">
@@ -71,7 +71,7 @@ export default function FreelancerSidebar() {
           </span>
         </div>
 
-        {/* Navigation Menu — আইটেমের মধ্যে fixed gap-5 (ছবির মতো মাঝারি স্পেসিং) */}
+       
         <nav className="flex flex-col">
           <ul className="flex flex-col gap-5">
             {menuItems.map((item) => {
@@ -100,7 +100,7 @@ export default function FreelancerSidebar() {
                       <span className="tracking-wide">{item.name}</span>
                     </div>
 
-                    {/* ডানপাশের পার্পল ডট ইন্ডিকেটর */}
+                   
                     {active && (
                       <span className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.9)] mr-1 shrink-0" />
                     )}
