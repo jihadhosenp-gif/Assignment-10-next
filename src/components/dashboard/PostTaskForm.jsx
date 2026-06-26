@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "@/lib/auth-client"; // সেশন ইমেইল নেওয়ার জন্য
 import axios from "axios";
 import {
   PlusCircle,
@@ -11,6 +12,8 @@ import {
 } from "lucide-react";
 
 export default function PostTaskForm() {
+  // ১. সেশন থেকে লগইন করা ইউজারের ডাটা নিয়ে আসা
+  const { data: session, isPending: sessionLoading } = useSession();
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -31,6 +34,12 @@ export default function PostTaskForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // সেশন থেকে যদি ইমেইল না পাওয়া যায় (লগইন করা না থাকে)
+    if (!session?.user?.email) {
+      alert("Please log in to post a task.");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -41,8 +50,8 @@ export default function PostTaskForm() {
         budget: Number(formData.budget),
         deadline: formData.deadline,
 
-        // Dashboard & My Tasks এর জন্য
-        client_email: "client@gmail.com",
+        // ২. এখানে ডাইনামিকালি লগইন করা ইউজারের ইমেইল সেট করা হয়েছে
+        client_email: session.user.email,
 
         status: "Open",
         createdAt: new Date(),
@@ -54,7 +63,6 @@ export default function PostTaskForm() {
       );
 
       console.log("Task Created:", response.data);
-
       alert("Task Published Successfully!");
 
       setFormData({
@@ -72,6 +80,24 @@ export default function PostTaskForm() {
     }
   };
 
+  // সেশন চেক করার সময় লোডিং স্টেট
+  if (sessionLoading) {
+    return (
+      <div className="text-center text-zinc-400 py-8 text-sm">
+        Loading session details...
+      </div>
+    );
+  }
+
+  // ইউজার লগইন না থাকলে ফর্ম হাইড করে মেসেজ দেখানো
+  if (!session?.user?.email) {
+    return (
+      <div className="text-center bg-zinc-900 border border-zinc-800 rounded-3xl p-8 max-w-5xl mx-auto text-zinc-400">
+        Please log in to access the Task Creation Form.
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
@@ -84,9 +110,8 @@ export default function PostTaskForm() {
             <h2 className="text-3xl font-bold text-white">
               Post New Task
             </h2>
-
             <p className="text-zinc-400">
-              Publish a task and hire talented freelancers
+              Publish a task and hire talented freelancers (Posting as: <span className="text-purple-400 font-medium">{session.user.email}</span>)
             </p>
           </div>
         </div>
@@ -97,13 +122,8 @@ export default function PostTaskForm() {
               <label className="text-sm text-zinc-300 mb-2 block">
                 Task Title
               </label>
-
               <div className="relative">
-                <Briefcase
-                  size={18}
-                  className="absolute left-4 top-4 text-zinc-500"
-                />
-
+                <Briefcase size={18} className="absolute left-4 top-4 text-zinc-500" />
                 <input
                   type="text"
                   name="title"
@@ -120,7 +140,6 @@ export default function PostTaskForm() {
               <label className="text-sm text-zinc-300 mb-2 block">
                 Category
               </label>
-
               <select
                 name="category"
                 required
@@ -129,21 +148,11 @@ export default function PostTaskForm() {
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 outline-none focus:border-purple-500 text-white"
               >
                 <option value="">Select Category</option>
-                <option value="Web Development">
-                  Web Development
-                </option>
-                <option value="UI/UX Design">
-                  UI/UX Design
-                </option>
-                <option value="Graphic Design">
-                  Graphic Design
-                </option>
-                <option value="Video Editing">
-                  Video Editing
-                </option>
-                <option value="Digital Marketing">
-                  Digital Marketing
-                </option>
+                <option value="Web Development">Web Development</option>
+                <option value="UI/UX Design">UI/UX Design</option>
+                <option value="Graphic Design">Graphic Design</option>
+                <option value="Video Editing">Video Editing</option>
+                <option value="Digital Marketing">Digital Marketing</option>
               </select>
             </div>
           </div>
@@ -152,13 +161,8 @@ export default function PostTaskForm() {
             <label className="text-sm text-zinc-300 mb-2 block">
               Description
             </label>
-
             <div className="relative">
-              <FileText
-                size={18}
-                className="absolute left-4 top-4 text-zinc-500"
-              />
-
+              <FileText size={18} className="absolute left-4 top-4 text-zinc-500" />
               <textarea
                 rows={6}
                 name="description"
@@ -176,13 +180,8 @@ export default function PostTaskForm() {
               <label className="text-sm text-zinc-300 mb-2 block">
                 Budget (USD)
               </label>
-
               <div className="relative">
-                <DollarSign
-                  size={18}
-                  className="absolute left-4 top-4 text-zinc-500"
-                />
-
+                <DollarSign size={18} className="absolute left-4 top-4 text-zinc-500" />
                 <input
                   type="number"
                   name="budget"
@@ -199,13 +198,8 @@ export default function PostTaskForm() {
               <label className="text-sm text-zinc-300 mb-2 block">
                 Deadline
               </label>
-
               <div className="relative">
-                <CalendarDays
-                  size={18}
-                  className="absolute left-4 top-4 text-zinc-500"
-                />
-
+                <CalendarDays size={18} className="absolute left-4 top-4 text-zinc-500" />
                 <input
                   type="date"
                   name="deadline"
